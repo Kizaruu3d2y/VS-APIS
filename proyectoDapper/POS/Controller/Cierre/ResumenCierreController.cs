@@ -3,6 +3,7 @@ using proyectoDapper.Models.Pos;
 using proyectoDapper.POS.Data.Cierre;
 using proyectoDapper.POS.Data.Endpoint;
 using proyectoDapper.POS.Models.Surtidor.Cliente.Cierre;
+using System.Collections.Generic;
 
 namespace proyectoDapper.POS.Controller.Cierre
 {
@@ -64,7 +65,7 @@ namespace proyectoDapper.POS.Controller.Cierre
                 var respuesta = new
                 {
                     Version = version,
-                    listaValoresCierre = resumenValores, // 👈 AQUÍ
+                    listaValoresCierre = resumenValores, 
                     vCombustible = datosCierre?.vCombustible ?? 0,
                     vAceite = datosCierre?.vAceite ?? 0,
                     vCredito = datosCierre?.vCredito ?? 0,
@@ -101,14 +102,11 @@ namespace proyectoDapper.POS.Controller.Cierre
                 if (usuario == null)
                     return Unauthorized(new { Mensaje = "Usuario no autorizado." });
 
-                // ===== Fecha turno =====
                 var fechaTurno = await _fechaTurnoRepository.ObtenerFechaTurnoAsync();
-                if (fechaTurno == null)
-                    return StatusCode(405, new { Mensaje = "No se pudo obtener la fecha turno." });
 
                 // ===== Validar versión / límite =====
-                var version = _versionCierreRepository.RealizarCierreVersion(usuario.Codigo);
-                if (version)
+                var version = _versionCierreRepository.RealizarCierreVersion(usuario.Codigo, request.valores, fechaTurno.Fecha);
+                if (!version)
                     return StatusCode(405, new { Mensaje = "No se pudo obtener el resumen de cierre." });
 
                 // ===== Guardar valores de cierre =====
@@ -121,7 +119,7 @@ namespace proyectoDapper.POS.Controller.Cierre
 
                 // ===== Ejecutar cierre diario =====
                 var resultado = await _cierreRepository.CierreDiario();
-                if (!resultado.Exito)
+                if (resultado.Exito)
                     return StatusCode(500, new { Mensaje = resultado.Error });
 
                 return Ok(new

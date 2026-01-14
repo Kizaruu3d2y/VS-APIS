@@ -2,6 +2,7 @@
 using Oracle.ManagedDataAccess.Client;
 using proyectoDapper.Models.Pos;
 using proyectoDapper.POS.Data.Endpoint;
+using proyectoDapper.POS.Models.Surtidor.Cliente.Cierre;
 using System.Data;
 
 namespace proyectoDapper.POS.Data.Cierre
@@ -17,42 +18,83 @@ namespace proyectoDapper.POS.Data.Cierre
             _connectionString = configuration.GetConnectionString("OracleDb");
             _fechaTurnoRepository = fechaTurnoRepository;
         }
-        public bool RealizarCierreVersion(string codRecurso)
+        public bool RealizarCierreVersion(string codRecurso, List<ValorCierreDto> listaValores, DateTime fechaTurno)
         {
-            var empresa = EmpresaGlobalDto.Empresa;
-            var fechaTurno = _fechaTurnoRepository.ObtenerFechaTurnoAsync().Result;
-            var fecha = fechaTurno.Fecha.ToShortDateString();
-            using IDbConnection connection = new OracleConnection(_connectionString);
-
-            connection.Open();
-
-            // Primero intento actualizar
-            var updateQuery = @"
-                UPDATE pos_bitacora_cierres
-                   SET version = version+1
-                 WHERE empresa = :empresa
-                   AND cod_recurso = :codRecurso
-                   AND fecha = to_date(:fecha,'dd/MM/yyyy')";
-
-            var updateParams = new
+            try
             {
-                empresa,
-                codRecurso,
-                fecha
-            };
+                var empresa = EmpresaGlobalDto.Empresa;
+                var fecha = fechaTurno.ToString("dd/MM/yyyy");
 
-            var filasAfectadas = connection.Execute(updateQuery, updateParams);
+                using IDbConnection connection = new OracleConnection(_connectionString);
+                connection.Open();
 
-            // Si no afectó filas, hacemos insert
-            if (filasAfectadas == 0)
-            {
-                var insertQuery = @"
-                    INSERT INTO pos_bitacora_cierres (empresa, cod_recurso, fecha, version)
-                    VALUES (:empresa, :codRecurso, to_date(:fecha,'dd/MM/yyyy'), 1)";
+                using var tx = connection.BeginTransaction();
 
-                connection.Execute(insertQuery, updateParams);
+                var consecutivo = connection.ExecuteScalar<long>(
+                    @"SELECT S_POS_CIERRE.NEXTVAL FROM dual", transaction: tx);
+
+                if (consecutivo <= 0)
+                {
+                    tx.Rollback();
+                    return false;
+                }
+
+                var insertQueryVersion = @"
+            insert into pos_bitacora_cierres
+            (empresa, cod_recurso, fecha, version, id_cierre)
+            values
+            (:empresa, :codRecurso, to_date(:fecha,'dd/MM/yyyy'),
+             (select count(*) + 1
+                from pos_bitacora_cierres
+               where cod_recurso = :codRecurso
+                 and empresa = :empresa
+                 and fecha = to_date(:fecha,'dd/MM/yyyy')),
+             :consecutivo)";
+
+                var filasInsertadasVersion = connection.Execute(insertQueryVersion, new
+                {
+                    empresa,
+                    codRecurso,
+                    fecha,
+                    consecutivo
+                }, tx);
+
+                if (filasInsertadasVersion != 1)
+                {
+                    tx.Rollback();
+                    return false;
+                }
+
+                var insertQueryCierre = @"
+            insert into pos_bitacora_valores_cierre
+            (id_cierre, id_linea, valor, monto)
+            values
+            (:consecutivo, :idlinea, :valor, :monto)";
+
+                var parametros = listaValores.Select(v => new
+                {
+                    consecutivo,
+                    idlinea = v.idlinea,
+                    valor = v.codigo,
+                    monto = v.monto
+                });
+
+                var filasInsertadasValores = connection.Execute(insertQueryCierre, parametros, tx);
+
+                if (filasInsertadasValores != listaValores.Count)
+                {
+                    tx.Rollback();
+                    return false;
+                }
+
+                tx.Commit();
+                return true;
             }
-            return true;
+            catch (Exception e)
+            {
+                e.Message.ToString();
+                return false;
+            }
         }
     }
 }
