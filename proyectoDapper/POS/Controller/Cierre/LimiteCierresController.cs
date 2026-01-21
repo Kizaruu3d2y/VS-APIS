@@ -10,13 +10,16 @@ namespace proyectoDapper.POS.Controller.Cierre
     {
         private readonly LimiteCierresRepository _limiteCierresRepository;
         private readonly ValidaUsuarioRepository _usuarioRepository;
+        private readonly FechaTurnoRepository _fechaTurnoRepository;
 
         public LimiteCierresController(
             LimiteCierresRepository limiteCierresRepository,
-            ValidaUsuarioRepository usuarioRepository)
+            ValidaUsuarioRepository usuarioRepository,
+                    FechaTurnoRepository fechaTurnoRepository)
         {
             _limiteCierresRepository = limiteCierresRepository;
             _usuarioRepository = usuarioRepository;
+            _fechaTurnoRepository = fechaTurnoRepository;
         }
 
         [HttpGet("limite")]
@@ -27,8 +30,11 @@ namespace proyectoDapper.POS.Controller.Cierre
                 var usuario = _usuarioRepository.ValidarUsuario(codRecurso);
                 if (usuario == null)
                     return Unauthorized();
+                var fechaTurno = await _fechaTurnoRepository.ObtenerFechaTurnoAsync();
+                if (fechaTurno == null)
+                    return StatusCode(500, new { Mensaje = "No se pudo obtener la fecha turno" });
 
-                var Disponible = await _limiteCierresRepository.VerificarLimiteCierresAsync(usuario.Codigo);
+                var Disponible = await _limiteCierresRepository.LimiteCierresAsync(usuario.Codigo);
 
                 if (Disponible == null)
                     return StatusCode(405, new { Mensaje = "No se pudo obtener fecha turno o datos" });

@@ -8,8 +8,13 @@
 
     public class ValorCierreDto
     {
-        public int codigo { get; set; }
-        public int idlinea { get; set; }
-        public decimal monto { get; set; }
+        public int idLinea { get; set; }
+        public string codigo { get; set; }
+        public string moneda { get; set; }
+        public double monto { get; set; }
+
+ 
+        public double tipoCambio { get; set; }
+        public string no_datafono { get; set; }
     }
 }

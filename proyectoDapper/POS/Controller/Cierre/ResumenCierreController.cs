@@ -51,7 +51,7 @@ namespace proyectoDapper.POS.Controller.Cierre
                 if (fechaTurno == null)
                     return StatusCode(500, new { Mensaje = "No se pudo obtener la fecha turno." });
 
-                var version = await _limiteRepository.LimiteCierresAsync(usuario.Codigo);
+                var version = await _limiteRepository.CantidadCierresAsync(usuario.Codigo);
                 var resumenValores = await _cierreResumenRepository.ObtenerCierreResumenAsync(EmpresaGlobalDto.Empresa);
                 var datosCierre = await _cierreRepository.ObtenerCierreAsync(EmpresaGlobalDto.Empresa, usuario.Codigo);
 
@@ -66,6 +66,52 @@ namespace proyectoDapper.POS.Controller.Cierre
                 {
                     Version = version,
                     listaValoresCierre = resumenValores, 
+                    vCombustible = datosCierre?.vCombustible ?? 0,
+                    vAceite = datosCierre?.vAceite ?? 0,
+                    vCredito = datosCierre?.vCredito ?? 0,
+                    vCalibracion = datosCierre?.Calibracion ?? 0,
+                    FechaTurno = fechaTurno,
+                    Mensaje = "OK"
+                };
+
+                return Ok(respuesta);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Mensaje = ex.Message });
+            }
+        }
+        [HttpGet("reimpresion")]
+        public async Task<IActionResult> ReimpresionCierre([FromQuery] string codRecurso)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(codRecurso))
+                    return BadRequest(new { Mensaje = "El parámetro 'codRecurso' es obligatorio." });
+
+                var usuario = _usuarioRepository.ValidarUsuario(codRecurso);
+                if (usuario == null)
+                    return Unauthorized(new { Mensaje = "Usuario no autorizado." });
+
+                var fechaTurno = await _fechaTurnoRepository.ObtenerFechaTurnoAsync();
+                if (fechaTurno == null)
+                    return StatusCode(500, new { Mensaje = "No se pudo obtener la fecha turno." });
+
+                var version = await _limiteRepository.CantidadCierresAsync(usuario.Codigo);
+                var resumenValores = await _cierreResumenRepository.ObtenerCierreResumenAsync(EmpresaGlobalDto.Empresa);
+                var datosCierre = await _cierreRepository.ObtenerCierreAsync(EmpresaGlobalDto.Empresa, usuario.Codigo);
+
+                if (resumenValores == null)
+                    return StatusCode(405, new { Mensaje = "No se pudo obtener el resumen de cierre." });
+                if (datosCierre == null)
+                    return StatusCode(405, new { Mensaje = "No se pudieron obtener los datos del cierre." });
+
+
+
+                var respuesta = new
+                {
+                    Version = version,
+                    listaValoresCierre = resumenValores,
                     vCombustible = datosCierre?.vCombustible ?? 0,
                     vAceite = datosCierre?.vAceite ?? 0,
                     vCredito = datosCierre?.vCredito ?? 0,
@@ -103,21 +149,14 @@ namespace proyectoDapper.POS.Controller.Cierre
                     return Unauthorized(new { Mensaje = "Usuario no autorizado." });
 
                 var fechaTurno = await _fechaTurnoRepository.ObtenerFechaTurnoAsync();
+                var CierreDto = await _cierreRepository.ObtenerCierreAsync(EmpresaGlobalDto.Empresa, usuario.Codigo);
 
                 // ===== Validar versión / límite =====
-                var version = _versionCierreRepository.RealizarCierreVersion(usuario.Codigo, request.valores, fechaTurno.Fecha);
+                var version = _versionCierreRepository.RealizarCierreVersion(usuario.Codigo, request.valores, CierreDto, fechaTurno.Fecha);
+
                 if (!version)
-                    return StatusCode(405, new { Mensaje = "No se pudo obtener el resumen de cierre." });
+                    return StatusCode(405, new { Mensaje = "No se pudo obtener el resumen de cierre. " });
 
-                // ===== Guardar valores de cierre =====
-                //await _cierreResumenRepository.GuardarValoresCierreAsync(
-                //    EmpresaGlobal.Empresa,
-                //    usuario.Codigo,
-                //    request.valores,
-                //    fechaTurno.Fecha
-                //);
-
-                // ===== Ejecutar cierre diario =====
                 var resultado = await _cierreRepository.CierreDiario();
                 if (resultado.Exito)
                     return StatusCode(500, new { Mensaje = resultado.Error });
@@ -126,7 +165,10 @@ namespace proyectoDapper.POS.Controller.Cierre
                 {
                     Mensaje = "OK",
                     FechaTurno = fechaTurno,
-                    Version = version
+                    Version = version,
+                    CierreDto.vCombustible,
+                    CierreDto.vAceite,
+                    CierreDto.vCredito
                 });
             }
             catch (Exception ex)

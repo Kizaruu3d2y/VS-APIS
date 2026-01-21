@@ -30,10 +30,7 @@ namespace proyectoDapper.POS.Controller.Endpoint
                 if (fechaTurno == null)
                     return StatusCode(402, new { Mensaje = "No se pudo obtener la fecha" });
                 else
-                    return Ok(new
-                    {
-                        fecha = fechaTurno.Fecha.ToString("yyyy-MM-dd")
-                    });
+                    return Ok(fechaTurno.Fecha.ToString("yyyy-MM-dd"));
             }
             catch (Exception ex)
             {

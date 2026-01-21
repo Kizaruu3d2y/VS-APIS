@@ -8,4 +8,9 @@
         public int Calibracion { get; set; }
         public DateTime? fechaCierre { get; set; }
     }
+    public class CierreVersionDto
+    {
+        public int id_cierre { get; set; }
+        public int no_turno { get; set; }
+    }
 }

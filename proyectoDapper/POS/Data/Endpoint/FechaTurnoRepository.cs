@@ -21,7 +21,7 @@ namespace proyectoDapper.POS.Data.Endpoint
 
             string empresa = EmpresaGlobalDto.Empresa;
 
-            var query = @"SELECT TO_CHAR(fecha_turno, 'yyyy-MM-dd') AS fecha
+            var query = @"SELECT fecha_turno AS fecha
                            FROM fac_puestos_trab
                           WHERE empresa = :empresa
                             AND cod_puesto = (SELECT cod_puesto

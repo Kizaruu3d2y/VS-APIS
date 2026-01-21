@@ -37,16 +37,11 @@ namespace proyectoDapper.POS.Controller.Cierre
                 if (usuario == null)
                     return Unauthorized();
 
-                // Obtener fecha turno
-                var fechaTurno = await _fechaTurnoRepository.ObtenerFechaTurnoAsync();
-                if (fechaTurno == null)
-                    return StatusCode(500, new { Mensaje = "No se pudo obtener la fecha turno" });
-
                 // Lógica principal: update/insert/select versión
-                var version = _limiteRepository.VerificarLimiteCierresAsync(usuario.Codigo);
+                var version = await _limiteRepository.LimiteCierresAsync(usuario.Codigo);
 
                 // 200 - Respuesta correcta
-                return Ok(version);
+                return Ok( version);
 
             }
             catch (Exception ex)

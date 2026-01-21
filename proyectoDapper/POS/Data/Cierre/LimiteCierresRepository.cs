@@ -15,8 +15,7 @@ namespace proyectoDapper.POS.Data.Cierre
             _configuration = configuration;
             _fechaTurnoRepository = fechaTurnoRepository;
         }
-
-        public async Task<bool?> VerificarLimiteCierresAsync(string recursoPistero)
+        public async Task<bool?> LimiteCierresAsync(string recursoPistero)
         {
             try
             {
@@ -31,21 +30,26 @@ namespace proyectoDapper.POS.Data.Cierre
                     return null;
 
                 string query = @"
-                select b.version as version, e.valor1 as total
-                  from pos_bitacora_cierres b, cor_parametros_esp e
-                 where b.empresa = :empresa
+                select
+                      case
+                        when nvl(b.no_turno, 0) < nvl(e.valor1, 0) then 1
+                        else 0
+                       end as permitido
+                  from cor_parametros_esp e
+                  left join fac_comb_cierres b
+                    on b.empresa = :empresa
                    and b.cod_recurso = :recurso
-                   and b.fecha = TO_DATE(:fecha, 'dd-MM-yyyy')
-                   and e.cod_parametro = 'MAX_CIERR'";
+                   and trunc(b.fecha) = trunc(:fecha)
+                 where e.cod_parametro = 'MAX_CIERR'";
 
-                var result = await connection.QueryFirstOrDefaultAsync<(int Cant, int Total)>(
-                    query, new { empresa, recurso = recursoPistero, fecha = fechaTurno.Fecha.ToShortDateString() }
-                );
-
-                if (result.Cant == 0 && result.Total == 0)
-                    return true;
-
-                return result.Cant >= result.Total;
+                var permitido = await connection.QuerySingleAsync<int>(query, new
+                {
+                    empresa,
+                    recurso = recursoPistero,
+                    fecha = fechaTurno.Fecha
+                }
+                    );
+                return permitido == 1;
             }
 
             catch (Exception e)
@@ -54,7 +58,7 @@ namespace proyectoDapper.POS.Data.Cierre
                 return null;
             }
         }
-        public async Task<int?> LimiteCierresAsync(string recursoPistero)
+        public async Task<int?> CantidadCierresAsync(string recursoPistero)
         {
             try
             {
@@ -69,8 +73,8 @@ namespace proyectoDapper.POS.Data.Cierre
                     return null;
 
                 string query = @"
-                select b.version as version, e.valor1 as total
-                  from pos_bitacora_cierres b, cor_parametros_esp e
+                select b.no_turno as version, e.valor1 as total
+                  from fac_comb_cierres b, cor_parametros_esp e
                  where b.empresa = :empresa
                    and b.cod_recurso = :recurso
                    and b.fecha = TO_DATE(:fecha, 'dd-MM-yyyy')

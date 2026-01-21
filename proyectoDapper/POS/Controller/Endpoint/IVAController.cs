@@ -33,7 +33,7 @@ namespace proyectoDapper.POS.Controller.Endpoint
                     return StatusCode(402, new { Mensaje = "No se pudo obtener la tasa de IVA" });
 
                 // 200 - Respuesta correcta
-                return Ok(resultado);
+                return Ok(resultado.tasa);
             }
             catch (Exception ex)
             {
