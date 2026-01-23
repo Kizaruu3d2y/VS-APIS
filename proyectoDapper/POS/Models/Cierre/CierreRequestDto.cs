@@ -15,6 +15,6 @@
 
  
         public double tipoCambio { get; set; }
-        public string no_datafono { get; set; }
+        public string datafono { get; set; }
     }
 }

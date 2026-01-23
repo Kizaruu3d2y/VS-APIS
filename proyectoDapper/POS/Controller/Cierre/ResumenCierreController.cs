@@ -98,7 +98,7 @@ namespace proyectoDapper.POS.Controller.Cierre
                     return StatusCode(500, new { Mensaje = "No se pudo obtener la fecha turno." });
 
                 var version = await _limiteRepository.CantidadCierresAsync(usuario.Codigo);
-                var resumenValores = await _cierreResumenRepository.ObtenerCierreResumenAsync(EmpresaGlobalDto.Empresa);
+                var resumenValores = await _cierreResumenRepository.ObtenerReimpresionCierre(EmpresaGlobalDto.Empresa, usuario.Codigo);
                 var datosCierre = await _cierreRepository.ObtenerCierreAsync(EmpresaGlobalDto.Empresa, usuario.Codigo);
 
                 if (resumenValores == null)

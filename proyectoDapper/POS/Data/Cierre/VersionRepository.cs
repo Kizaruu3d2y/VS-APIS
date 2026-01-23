@@ -81,7 +81,7 @@ namespace proyectoDapper.POS.Data.Cierre
                 }
                 else
                 {
-                    string consecutivo = @"(select utl_consecutivos.siguiente('ID_CIERRE', :empresa, to_date(:fecha,'dd/MM/yyyy')-4, 'FAC') from dual)";
+                    string consecutivo = @"(select utl_consecutivos.siguiente('ID_CIERRE', :empresa, to_date(:fecha,'dd/MM/yyyy'), 'FAC') from dual)";
 
                     id_cierre = connection.QuerySingle<int>(consecutivo, new
                     {
@@ -92,7 +92,7 @@ namespace proyectoDapper.POS.Data.Cierre
                     var updateQueryVersion = @"insert into fac_comb_cierres " +
                                                       "(empresa, id_cierre, cod_division, cod_puesto, cod_recurso, no_turno, fecha, estado, cod_moneda, total_vend_contado, total_vend_credito, id_transaccion_nd, tipo_cambio, id_factura_v_cont, total_fac_cont, total_fac_credi, total_vendido, faltante_sobrante, total_valores, version, estado_conta) " +
                                              "values " +
-                                                     "(:empresa,:id_cierre, '01', 'I_01', :codrecurso, '1', to_date(:fecha,'dd/MM/yyyy'), 'A', 'COL', '', '', '', 1, '', '', :total_fac_credi, :total_vendido, :faltante_sobrante, :totalvalores, 'T')";
+                                                     "(:empresa,:id_cierre, '01', 'I_01', :codrecurso, '1', to_date(:fecha,'dd/MM/yyyy'), 'A', 'COL', '', '', '', 1, '', '', :total_fac_credi, :total_vendido, :faltante_sobrante, :totalvalores,0, 'T')";
                     double total_fac_credi = datosCierre.vCredito;
                     double total_vendido = datosCierre.vCombustible+datosCierre.vAceite;
                     double faltante_sobrante = 0;
@@ -131,7 +131,7 @@ namespace proyectoDapper.POS.Data.Cierre
                         cod_moneda = item.moneda,
                         tipo_cambio = item.tipoCambio,
                         monto_pagado = item.monto,
-                        no_datafono = item.no_datafono
+                        no_datafono = item.datafono
                     }, transaction: tx);
                 }
 
