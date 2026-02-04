@@ -34,7 +34,7 @@ namespace proyectoDapper.POS.Controller.Cliente
                     return BadRequest(new { Mensaje = "Parámetros inválidos" });
 
                 // 401 - Validar usuario
-                var usuario = _usuarioRepository.ValidarUsuario(request.codCliente);
+                var usuario = _usuarioRepository.ValidarUsuario(request.codRecurso);
                 if (usuario == null)
                     return Unauthorized(new { Mensaje = "Usuario no autorizado" });
 
