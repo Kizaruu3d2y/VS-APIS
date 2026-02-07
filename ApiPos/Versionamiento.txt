@@ -1,0 +1,4 @@
+﻿Version 
+		0.1
+			Se crea el proyecto VS-ApiTike
+			Se crea subpryecto ApiPos
